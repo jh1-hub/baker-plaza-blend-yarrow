@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "DATA HUNTER",
+      "hasCanvas": true,
+      "bodyTextLen": 157,
+      "bodyTextHash": "bdac180019d4403ef98ca52094b1f0b4513dc2cff45ce00e300c129ad317a323",
+      "bodyTextPrefix": "DATA RESEARCH FACILITY DATA HUNTER 質的データ vs 量的データ ターゲットは正面から接近する",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "DATA HUNTER",
+      "hasCanvas": true,
+      "bodyTextLen": 157,
+      "bodyTextHash": "bdac180019d4403ef98ca52094b1f0b4513dc2cff45ce00e300c129ad317a323",
+      "bodyTextPrefix": "DATA RESEARCH FACILITY DATA HUNTER 質的データ vs 量的データ ターゲットは正面から接近する",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}
