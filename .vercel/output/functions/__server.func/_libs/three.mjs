@@ -17153,6 +17153,139 @@ var BoxGeometry = class BoxGeometry extends BufferGeometry {
 	}
 };
 /**
+* A geometry class for representing a capsule.
+*
+* ```js
+* const geometry = new THREE.CapsuleGeometry( 1, 1, 4, 8, 1 );
+* const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+* const capsule = new THREE.Mesh( geometry, material );
+* scene.add( capsule );
+* ```
+*
+* @augments BufferGeometry
+* @demo scenes/geometry-browser.html#CapsuleGeometry
+*/
+var CapsuleGeometry = class CapsuleGeometry extends BufferGeometry {
+	/**
+	* Constructs a new capsule geometry.
+	*
+	* @param {number} [radius=1] - Radius of the capsule.
+	* @param {number} [height=1] - Height of the middle section.
+	* @param {number} [capSegments=4] - Number of curve segments used to build each cap.
+	* @param {number} [radialSegments=8] - Number of segmented faces around the circumference of the capsule. Must be an integer >= 3.
+	* @param {number} [heightSegments=1] - Number of rows of faces along the height of the middle section. Must be an integer >= 1.
+	*/
+	constructor(radius = 1, height = 1, capSegments = 4, radialSegments = 8, heightSegments = 1) {
+		super();
+		this.type = "CapsuleGeometry";
+		/**
+		* Holds the constructor parameters that have been
+		* used to generate the geometry. Any modification
+		* after instantiation does not change the geometry.
+		*
+		* @type {Object}
+		*/
+		this.parameters = {
+			radius,
+			height,
+			capSegments,
+			radialSegments,
+			heightSegments
+		};
+		height = Math.max(0, height);
+		capSegments = Math.max(1, Math.floor(capSegments));
+		radialSegments = Math.max(3, Math.floor(radialSegments));
+		heightSegments = Math.max(1, Math.floor(heightSegments));
+		const indices = [];
+		const vertices = [];
+		const normals = [];
+		const uvs = [];
+		const halfHeight = height / 2;
+		const capArcLength = Math.PI / 2 * radius;
+		const cylinderPartLength = height;
+		const totalArcLength = 2 * capArcLength + cylinderPartLength;
+		const numVerticalSegments = capSegments * 2 + heightSegments;
+		const verticesPerRow = radialSegments + 1;
+		const normal = new Vector3();
+		const vertex = new Vector3();
+		for (let iy = 0; iy <= numVerticalSegments; iy++) {
+			let currentArcLength = 0;
+			let profileY = 0;
+			let profileRadius = 0;
+			let normalYComponent = 0;
+			if (iy <= capSegments) {
+				const segmentProgress = iy / capSegments;
+				const angle = segmentProgress * Math.PI / 2;
+				profileY = -halfHeight - radius * Math.cos(angle);
+				profileRadius = radius * Math.sin(angle);
+				normalYComponent = -radius * Math.cos(angle);
+				currentArcLength = segmentProgress * capArcLength;
+			} else if (iy <= capSegments + heightSegments) {
+				const segmentProgress = (iy - capSegments) / heightSegments;
+				profileY = -halfHeight + segmentProgress * height;
+				profileRadius = radius;
+				normalYComponent = 0;
+				currentArcLength = capArcLength + segmentProgress * cylinderPartLength;
+			} else {
+				const segmentProgress = (iy - capSegments - heightSegments) / capSegments;
+				const angle = segmentProgress * Math.PI / 2;
+				profileY = halfHeight + radius * Math.sin(angle);
+				profileRadius = radius * Math.cos(angle);
+				normalYComponent = radius * Math.sin(angle);
+				currentArcLength = capArcLength + cylinderPartLength + segmentProgress * capArcLength;
+			}
+			const v = Math.max(0, Math.min(1, currentArcLength / totalArcLength));
+			let uOffset = 0;
+			if (iy === 0) uOffset = .5 / radialSegments;
+			else if (iy === numVerticalSegments) uOffset = -.5 / radialSegments;
+			for (let ix = 0; ix <= radialSegments; ix++) {
+				const u = ix / radialSegments;
+				const theta = u * Math.PI * 2;
+				const sinTheta = Math.sin(theta);
+				const cosTheta = Math.cos(theta);
+				vertex.x = -profileRadius * cosTheta;
+				vertex.y = profileY;
+				vertex.z = profileRadius * sinTheta;
+				vertices.push(vertex.x, vertex.y, vertex.z);
+				normal.set(-profileRadius * cosTheta, normalYComponent, profileRadius * sinTheta);
+				normal.normalize();
+				normals.push(normal.x, normal.y, normal.z);
+				uvs.push(u + uOffset, v);
+			}
+			if (iy > 0) {
+				const prevIndexRow = (iy - 1) * verticesPerRow;
+				for (let ix = 0; ix < radialSegments; ix++) {
+					const i1 = prevIndexRow + ix;
+					const i2 = prevIndexRow + ix + 1;
+					const i3 = iy * verticesPerRow + ix;
+					const i4 = iy * verticesPerRow + ix + 1;
+					indices.push(i1, i2, i3);
+					indices.push(i2, i4, i3);
+				}
+			}
+		}
+		this.setIndex(indices);
+		this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+		this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+		this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+	}
+	copy(source) {
+		super.copy(source);
+		this.parameters = Object.assign({}, source.parameters);
+		return this;
+	}
+	/**
+	* Factory method for creating an instance of this class from the given
+	* JSON object.
+	*
+	* @param {Object} data - A JSON object representing the serialized geometry.
+	* @return {CapsuleGeometry} A new instance.
+	*/
+	static fromJSON(data) {
+		return new CapsuleGeometry(data.radius, data.height, data.capSegments, data.radialSegments, data.heightSegments);
+	}
+};
+/**
 * A geometry class for representing a cylinder.
 *
 * ```js
@@ -17543,6 +17676,225 @@ var PolyhedronGeometry = class PolyhedronGeometry extends BufferGeometry {
 	*/
 	static fromJSON(data) {
 		return new PolyhedronGeometry(data.vertices, data.indices, data.radius, data.detail);
+	}
+};
+/**
+* A geometry class for representing a dodecahedron.
+*
+* ```js
+* const geometry = new THREE.DodecahedronGeometry();
+* const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+* const dodecahedron = new THREE.Mesh( geometry, material );
+* scene.add( dodecahedron );
+* ```
+*
+* @augments PolyhedronGeometry
+* @demo scenes/geometry-browser.html#DodecahedronGeometry
+*/
+var DodecahedronGeometry = class DodecahedronGeometry extends PolyhedronGeometry {
+	/**
+	* Constructs a new dodecahedron geometry.
+	*
+	* @param {number} [radius=1] - Radius of the dodecahedron.
+	* @param {number} [detail=0] - Setting this to a value greater than `0` adds vertices making it no longer a dodecahedron.
+	*/
+	constructor(radius = 1, detail = 0) {
+		const t = (1 + Math.sqrt(5)) / 2;
+		const r = 1 / t;
+		const vertices = [
+			-1,
+			-1,
+			-1,
+			-1,
+			-1,
+			1,
+			-1,
+			1,
+			-1,
+			-1,
+			1,
+			1,
+			1,
+			-1,
+			-1,
+			1,
+			-1,
+			1,
+			1,
+			1,
+			-1,
+			1,
+			1,
+			1,
+			0,
+			-r,
+			-t,
+			0,
+			-r,
+			t,
+			0,
+			r,
+			-t,
+			0,
+			r,
+			t,
+			-r,
+			-t,
+			0,
+			-r,
+			t,
+			0,
+			r,
+			-t,
+			0,
+			r,
+			t,
+			0,
+			-t,
+			0,
+			-r,
+			t,
+			0,
+			-r,
+			-t,
+			0,
+			r,
+			t,
+			0,
+			r
+		];
+		super(vertices, [
+			3,
+			11,
+			7,
+			3,
+			7,
+			15,
+			3,
+			15,
+			13,
+			7,
+			19,
+			17,
+			7,
+			17,
+			6,
+			7,
+			6,
+			15,
+			17,
+			4,
+			8,
+			17,
+			8,
+			10,
+			17,
+			10,
+			6,
+			8,
+			0,
+			16,
+			8,
+			16,
+			2,
+			8,
+			2,
+			10,
+			0,
+			12,
+			1,
+			0,
+			1,
+			18,
+			0,
+			18,
+			16,
+			6,
+			10,
+			2,
+			6,
+			2,
+			13,
+			6,
+			13,
+			15,
+			2,
+			16,
+			18,
+			2,
+			18,
+			3,
+			2,
+			3,
+			13,
+			18,
+			1,
+			9,
+			18,
+			9,
+			11,
+			18,
+			11,
+			3,
+			4,
+			14,
+			12,
+			4,
+			12,
+			0,
+			4,
+			0,
+			8,
+			11,
+			9,
+			5,
+			11,
+			5,
+			19,
+			11,
+			19,
+			7,
+			19,
+			5,
+			14,
+			19,
+			14,
+			4,
+			19,
+			4,
+			17,
+			1,
+			12,
+			14,
+			1,
+			14,
+			5,
+			1,
+			5,
+			9
+		], radius, detail);
+		this.type = "DodecahedronGeometry";
+		/**
+		* Holds the constructor parameters that have been
+		* used to generate the geometry. Any modification
+		* after instantiation does not change the geometry.
+		*
+		* @type {Object}
+		*/
+		this.parameters = {
+			radius,
+			detail
+		};
+	}
+	/**
+	* Factory method for creating an instance of this class from the given
+	* JSON object.
+	*
+	* @param {Object} data - A JSON object representing the serialized geometry.
+	* @return {DodecahedronGeometry} A new instance.
+	*/
+	static fromJSON(data) {
+		return new DodecahedronGeometry(data.radius, data.detail);
 	}
 };
 /**
@@ -18145,6 +18497,125 @@ var TorusGeometry = class TorusGeometry extends BufferGeometry {
 	*/
 	static fromJSON(data) {
 		return new TorusGeometry(data.radius, data.tube, data.radialSegments, data.tubularSegments, data.arc, data.thetaStart, data.thetaLength);
+	}
+};
+/**
+* Creates a torus knot, the particular shape of which is defined by a pair
+* of coprime integers, p and q. If p and q are not coprime, the result will
+* be a torus link.
+*
+* ```js
+* const geometry = new THREE.TorusKnotGeometry( 10, 3, 100, 16 );
+* const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+* const torusKnot = new THREE.Mesh( geometry, material );
+* scene.add( torusKnot );
+* ```
+*
+* @augments BufferGeometry
+* @demo scenes/geometry-browser.html#TorusKnotGeometry
+*/
+var TorusKnotGeometry = class TorusKnotGeometry extends BufferGeometry {
+	/**
+	* Constructs a new torus knot geometry.
+	*
+	* @param {number} [radius=1] - Radius of the torus knot.
+	* @param {number} [tube=0.4] - Radius of the tube.
+	* @param {number} [tubularSegments=64] - The number of tubular segments.
+	* @param {number} [radialSegments=8] - The number of radial segments.
+	* @param {number} [p=2] - This value determines, how many times the geometry winds around its axis of rotational symmetry.
+	* @param {number} [q=3] - This value determines, how many times the geometry winds around a circle in the interior of the torus.
+	*/
+	constructor(radius = 1, tube = .4, tubularSegments = 64, radialSegments = 8, p = 2, q = 3) {
+		super();
+		this.type = "TorusKnotGeometry";
+		/**
+		* Holds the constructor parameters that have been
+		* used to generate the geometry. Any modification
+		* after instantiation does not change the geometry.
+		*
+		* @type {Object}
+		*/
+		this.parameters = {
+			radius,
+			tube,
+			tubularSegments,
+			radialSegments,
+			p,
+			q
+		};
+		tubularSegments = Math.floor(tubularSegments);
+		radialSegments = Math.floor(radialSegments);
+		const indices = [];
+		const vertices = [];
+		const normals = [];
+		const uvs = [];
+		const vertex = new Vector3();
+		const normal = new Vector3();
+		const P1 = new Vector3();
+		const P2 = new Vector3();
+		const B = new Vector3();
+		const T = new Vector3();
+		const N = new Vector3();
+		for (let i = 0; i <= tubularSegments; ++i) {
+			const u = i / tubularSegments * p * Math.PI * 2;
+			calculatePositionOnCurve(u, p, q, radius, P1);
+			calculatePositionOnCurve(u + .01, p, q, radius, P2);
+			T.subVectors(P2, P1);
+			N.addVectors(P2, P1);
+			B.crossVectors(T, N);
+			N.crossVectors(B, T);
+			B.normalize();
+			N.normalize();
+			for (let j = 0; j <= radialSegments; ++j) {
+				const v = j / radialSegments * Math.PI * 2;
+				const cx = -tube * Math.cos(v);
+				const cy = tube * Math.sin(v);
+				vertex.x = P1.x + (cx * N.x + cy * B.x);
+				vertex.y = P1.y + (cx * N.y + cy * B.y);
+				vertex.z = P1.z + (cx * N.z + cy * B.z);
+				vertices.push(vertex.x, vertex.y, vertex.z);
+				normal.subVectors(vertex, P1).normalize();
+				normals.push(normal.x, normal.y, normal.z);
+				uvs.push(i / tubularSegments);
+				uvs.push(j / radialSegments);
+			}
+		}
+		for (let j = 1; j <= tubularSegments; j++) for (let i = 1; i <= radialSegments; i++) {
+			const a = (radialSegments + 1) * (j - 1) + (i - 1);
+			const b = (radialSegments + 1) * j + (i - 1);
+			const c = (radialSegments + 1) * j + i;
+			const d = (radialSegments + 1) * (j - 1) + i;
+			indices.push(a, b, d);
+			indices.push(b, c, d);
+		}
+		this.setIndex(indices);
+		this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+		this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+		this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+		function calculatePositionOnCurve(u, p, q, radius, position) {
+			const cu = Math.cos(u);
+			const su = Math.sin(u);
+			const quOverP = q / p * u;
+			const cs = Math.cos(quOverP);
+			position.x = radius * (2 + cs) * .5 * cu;
+			position.y = radius * (2 + cs) * su * .5;
+			position.z = radius * Math.sin(quOverP) * .5;
+		}
+	}
+	copy(source) {
+		super.copy(source);
+		this.parameters = Object.assign({}, source.parameters);
+		return this;
+	}
+	/**
+	* Factory method for creating an instance of this class from the given
+	* JSON object.
+	*
+	* @param {Object} data - A JSON object representing the serialized geometry.
+	* @return {TorusKnotGeometry} A new instance.
+	*/
+	static fromJSON(data) {
+		return new TorusKnotGeometry(data.radius, data.tube, data.tubularSegments, data.radialSegments, data.p, data.q);
 	}
 };
 /**
@@ -34055,4 +34526,4 @@ var WebGLRenderer = class {
 	}
 };
 //#endregion
-export { Sprite as A, PointLight as C, Scene as D, SRGBColorSpace as E, Vector2 as F, Vector3 as I, TetrahedronGeometry as M, Timer as N, SphereGeometry as O, TorusGeometry as P, PlaneGeometry as S, RepeatWrapping as T, MeshBasicMaterial as _, Color as a, OctahedronGeometry as b, DirectionalLight as c, HemisphereLight as d, IcosahedronGeometry as f, Mesh as g, MathUtils as h, CanvasTexture as i, SpriteMaterial as j, SpotLight as k, Fog as l, LineBasicMaterial as m, BoxGeometry as n, ConeGeometry as o, Line as p, BufferGeometry as r, CylinderGeometry as s, WebGLRenderer as t, Group as u, MeshStandardMaterial as v, Raycaster as w, PerspectiveCamera as x, Object3D as y };
+export { SphereGeometry as A, PerspectiveCamera as C, RepeatWrapping as D, Raycaster as E, Timer as F, TorusGeometry as I, TorusKnotGeometry as L, Sprite as M, SpriteMaterial as N, SRGBColorSpace as O, TetrahedronGeometry as P, Vector2 as R, OctahedronGeometry as S, PointLight as T, MathUtils as _, CapsuleGeometry as a, MeshStandardMaterial as b, CylinderGeometry as c, Fog as d, Group as f, LineBasicMaterial as g, Line as h, CanvasTexture as i, SpotLight as j, Scene as k, DirectionalLight as l, IcosahedronGeometry as m, BoxGeometry as n, Color as o, HemisphereLight as p, BufferGeometry as r, ConeGeometry as s, WebGLRenderer as t, DodecahedronGeometry as u, Mesh as v, PlaneGeometry as w, Object3D as x, MeshBasicMaterial as y, Vector3 as z };

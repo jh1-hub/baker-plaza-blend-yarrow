@@ -7,6 +7,7 @@ type SaveData = {
 
 export function loadSave(): SaveData {
   try {
+    if (typeof window === "undefined") return { version: 1, highScore: 0 };
     const raw = localStorage.getItem(KEY);
     if (!raw) return { version: 1, highScore: 0 };
     const parsed = JSON.parse(raw) as Partial<SaveData>;

@@ -145,7 +145,12 @@ function authPopupPlugin(): Plugin {
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
+const rawBase = process.env.BASE_PATH?.trim() || "/";
+const base = rawBase === "/" ? "/" : rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
+const routerBasepath = base === "/" ? "/" : base.replace(/\/$/, "");
+
 export default defineConfig(({ command, isPreview }) => ({
+  base,
   server: {
     host: "0.0.0.0",
     port: 8080,
@@ -166,7 +171,14 @@ export default defineConfig(({ command, isPreview }) => ({
     // PWA head + ?install=1 tutorial page; runs before Start/Nitro.
     grokPwaPlugin(),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: { basepath: routerBasepath },
+      prerender: {
+        enabled: true,
+        failOnError: true,
+      },
+      pages: [{ path: "/", prerender: { enabled: true } }],
+    }),
     ...(command === "build" || isPreview
       ? [
           nitro({
